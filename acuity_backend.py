@@ -27,7 +27,8 @@ def auth_header():
 @app.route("/availability")
 def get_availability():
     """
-    Returns all available appointment times for the next 14 days.
+    Returns available times for the chosen appointment type
+    for the next 14 days.
     """
     import datetime, os, requests
     from flask import jsonify
@@ -35,20 +36,29 @@ def get_availability():
     try:
         user_id = os.getenv("ACUITY_USER_ID")
         api_key = os.getenv("ACUITY_API_KEY")
+        appointment_type_id = 79560191
 
         today = datetime.date.today()
-        end_date = today + datetime.timedelta(days=14)   # 👈 change to 30 if you want a full month
+        end_date = today + datetime.timedelta(days=14)
 
         url = (
-            "https://acuityscheduling.com/api/v1/availability/times"
-            f"?start_date={today.isoformat()}&end_date={end_date.isoformat()}"
+            f"https://acuityscheduling.com/api/v1/availability/times?"
+            f"appointmentTypeID={appointment_type_id}"
+            f"&start_date={today.isoformat()}&end_date={end_date.isoformat()}"
         )
 
         response = requests.get(url, auth=(user_id, api_key))
         data = response.json()
 
-        # Return a clean list of available times
-        times = [{"time": item["time"]} for item in data if "time" in item]
+        # Flatten the structure to simple list of time dicts
+        times = []
+        if isinstance(data, list):
+            for day in data:
+                if "time" in day:
+                    times.append({"time": day["time"]})
+                elif "times" in day:
+                    for t in day["times"]:
+                        times.append({"time": t["time"]})
 
         return jsonify(times)
 
