@@ -26,33 +26,35 @@ def auth_header():
 
 @app.route("/availability")
 def get_availability():
+    """
+    Returns all available appointment times for the next 14 days.
+    """
+    import datetime, os, requests
+    from flask import jsonify
+
     try:
-        url = f"https://acuityscheduling.com/api/v1/availability/times"
-        response = requests.get(url, auth=(os.getenv("ACUITY_USER_ID"), os.getenv("ACUITY_API_KEY")))
+        user_id = os.getenv("ACUITY_USER_ID")
+        api_key = os.getenv("ACUITY_API_KEY")
+
+        today = datetime.date.today()
+        end_date = today + datetime.timedelta(days=14)   # 👈 change to 30 if you want a full month
+
+        url = (
+            "https://acuityscheduling.com/api/v1/availability/times"
+            f"?start_date={today.isoformat()}&end_date={end_date.isoformat()}"
+        )
+
+        response = requests.get(url, auth=(user_id, api_key))
         data = response.json()
 
-        times = []
-        for item in data:
-            if "time" in item:
-                times.append({"time": item["time"]})
+        # Return a clean list of available times
+        times = [{"time": item["time"]} for item in data if "time" in item]
 
         return jsonify(times)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    """
-    Fetch available times from Acuity Scheduling.
-    Optional query params: appointmentTypeID, month, day, calendarID, etc.
-    Docs: https://developers.acuityscheduling.com/reference/availabilitytimes
-    """
-    appointment_type_id = request.args.get("appointmentTypeID") or ""
-    params = {}
-    if appointment_type_id:
-        params["appointmentTypeID"] = appointment_type_id
-
-    acuity_url = "https://acuityscheduling.com/api/v1/availability/times"
-    response = requests.get(acuity_url, headers=auth_header(), params=params)
-    return jsonify(response.json())
 
 @app.route("/book", methods=["POST"])
 def book_appointment():
