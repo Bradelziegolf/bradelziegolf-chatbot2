@@ -24,8 +24,22 @@ def auth_header():
 
 # --- ROUTES ---
 
-@app.route("/availability", methods=["GET"])
+@app.route("/availability")
 def get_availability():
+    try:
+        url = f"https://acuityscheduling.com/api/v1/availability/times"
+        response = requests.get(url, auth=(os.getenv("ACUITY_USER_ID"), os.getenv("ACUITY_API_KEY")))
+        data = response.json()
+
+        times = []
+        for item in data:
+            if "time" in item:
+                times.append({"time": item["time"]})
+
+        return jsonify(times)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
     """
     Fetch available times from Acuity Scheduling.
     Optional query params: appointmentTypeID, month, day, calendarID, etc.
