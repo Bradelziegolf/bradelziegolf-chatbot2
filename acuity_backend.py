@@ -3,7 +3,14 @@ import requests
 import os
 from base64 import b64encode
 
+from flask import Flask, request, jsonify
+import requests
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app, origins=["https://bradelziegolf.com"])
+
+
 
 # --- Secure Config ---
 # Store these in an .env file, NOT directly in code
